@@ -8,7 +8,7 @@ import atmosVert from "@/helpers/shaders/atmos.vert.glsl";
 import { GradientEmissiveAddon } from "@/helpers/shaders/gradient-emissive";
 import { GeoFeatures } from "@/types/utils";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Easing, Tween, update } from "@tweenjs/tween.js";
+import { Easing, Interpolation, Tween, update } from "@tweenjs/tween.js";
 import ExifReader from "exifreader";
 import { useEffect, useRef } from "react";
 import {
@@ -18,8 +18,9 @@ import {
   Group,
   SpotLight,
   TextureLoader,
-  Vector3,
 } from "three";
+
+export const EARTH_RADIUS = 100;
 
 export const Earth = (props: { countryData?: GeoFeatures[] }) => {
   const { countryData } = props;
@@ -89,7 +90,7 @@ export const Earth = (props: { countryData?: GeoFeatures[] }) => {
               if (lat && lng && latRef && lngRef) {
                 const realLat = Number(lat) * (latRef === "N" ? 1 : -1);
                 const realLng = Number(lng) * (lngRef === "E" ? 1 : -1);
-                const pos = GPSToCartesian(realLat, realLng, 200);
+                const pos = GPSToCartesian(realLat, realLng, EARTH_RADIUS + 50);
 
                 const initCameraPos = camera.position.clone();
                 new Tween({
@@ -98,7 +99,7 @@ export const Earth = (props: { countryData?: GeoFeatures[] }) => {
                   z: initCameraPos.z,
                 })
                   .to({ x: pos.x, y: pos.y, z: pos.z }, 1000)
-                  .easing(Easing.Circular.InOut)
+                  .interpolation(Interpolation.CatmullRom)
                   .onUpdate(({ x, y, z }) => {
                     camera.position.set(x, y, z);
                   })
@@ -139,7 +140,7 @@ export const Earth = (props: { countryData?: GeoFeatures[] }) => {
         />
       </group>
 
-      <group rotation={[0, -Math.PI / 2, 0]}>
+      <group rotation={[0, -Math.PI / 2, 0]} visible={true}>
         <mesh
           userData={{ type: "earth" }}
           onPointerMove={(e) => {
@@ -179,17 +180,18 @@ export const Earth = (props: { countryData?: GeoFeatures[] }) => {
             }
           }}
         >
-          <sphereGeometry args={[100, 64, 64]} />
+          <sphereGeometry args={[EARTH_RADIUS, 64, 64]} />
           <meshStandardMaterial
             map={map}
+            // color="black"
             roughnessMap={roughnessMap}
             roughness={0.5}
             onBeforeCompile={GradientEmissiveAddon}
           />
         </mesh>
 
-        <mesh userData={{ type: "cloud" }}>
-          <sphereGeometry args={[101, 64, 64]} />
+        <mesh userData={{ type: "cloud" }} visible={true}>
+          <sphereGeometry args={[EARTH_RADIUS + 1, 64, 64]} />
           <meshStandardMaterial
             map={cloudMap}
             transparent
@@ -200,7 +202,7 @@ export const Earth = (props: { countryData?: GeoFeatures[] }) => {
       </group>
 
       <mesh userData={{ type: "aura" }}>
-        <sphereGeometry args={[108, 64, 64]} />
+        <sphereGeometry args={[EARTH_RADIUS + 8, 64, 64]} />
         <shaderMaterial
           blending={AdditiveBlending}
           side={BackSide}

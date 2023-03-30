@@ -2,13 +2,14 @@ import { GeoFeatures } from "@/types/utils";
 import { useMemo, useRef } from "react";
 import { LineSegments } from "three";
 import { GeoJsonGeometry } from "three-geojson-geometry";
+import { EARTH_RADIUS } from "./Earth";
 
 const Territory = (props: { feature: GeoFeatures }) => {
   const { feature } = props;
   const ref = useRef<LineSegments>(null);
 
   const geometry = useMemo(() => {
-    const geo = new GeoJsonGeometry(feature.geometry, 101);
+    const geo = new GeoJsonGeometry(feature.geometry, EARTH_RADIUS + 1);
 
     return geo;
   }, [feature.geometry]);
