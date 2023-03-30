@@ -18,6 +18,7 @@ import {
   Group,
   SpotLight,
   TextureLoader,
+  Vector3,
 } from "three";
 
 export const Earth = (props: { countryData?: GeoFeatures[] }) => {
@@ -188,7 +189,7 @@ export const Earth = (props: { countryData?: GeoFeatures[] }) => {
         </mesh>
 
         <mesh userData={{ type: "cloud" }}>
-          <sphereGeometry args={[102, 64, 64]} />
+          <sphereGeometry args={[101, 64, 64]} />
           <meshStandardMaterial
             map={cloudMap}
             transparent
@@ -205,6 +206,10 @@ export const Earth = (props: { countryData?: GeoFeatures[] }) => {
           side={BackSide}
           vertexShader={atmosVert}
           fragmentShader={atmosFrag}
+          uniforms={{
+            intensity: { value: 0.9 },
+            color: { value: [0.3, 0.6, 1.0] },
+          }}
         />
       </mesh>
     </>
