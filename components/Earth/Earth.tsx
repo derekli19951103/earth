@@ -6,7 +6,6 @@ import {
 import atmosFrag from "@/helpers/shaders/atmos.frag.glsl";
 import atmosVert from "@/helpers/shaders/atmos.vert.glsl";
 import { GeoFeatures } from "@/types/utils";
-import { Html } from "@react-three/drei";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Easing, Tween, update } from "@tweenjs/tween.js";
 import ExifReader from "exifreader";

@@ -1,8 +1,6 @@
-import { GPSToCartesian, isLocationInRegion } from "@/helpers/functions/geo";
 import { GeoFeatures } from "@/types/utils";
 import { OrbitControls, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import ExifReader from "exifreader";
 import { useEffect, useRef, useState } from "react";
 import { ACESFilmicToneMapping, sRGBEncoding } from "three";
 import { Earth } from "./Earth";
@@ -13,8 +11,6 @@ export const EarthContainer = () => {
     type: string;
     features: GeoFeatures[];
   }>();
-
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     fetch("/countries.geojson")
