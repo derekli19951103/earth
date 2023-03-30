@@ -5,6 +5,7 @@ import {
 } from "@/helpers/functions/geo";
 import atmosFrag from "@/helpers/shaders/atmos.frag.glsl";
 import atmosVert from "@/helpers/shaders/atmos.vert.glsl";
+import { GradientEmissiveAddon } from "@/helpers/shaders/gradient-emissive";
 import { GeoFeatures } from "@/types/utils";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Easing, Tween, update } from "@tweenjs/tween.js";
@@ -182,6 +183,7 @@ export const Earth = (props: { countryData?: GeoFeatures[] }) => {
             map={map}
             roughnessMap={roughnessMap}
             roughness={0.5}
+            onBeforeCompile={GradientEmissiveAddon}
           />
         </mesh>
 
