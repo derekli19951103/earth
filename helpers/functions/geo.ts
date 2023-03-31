@@ -1,6 +1,11 @@
 import { GeoFeatures } from "@/types/utils";
-import * as turf from "@turf/turf";
-import { multiPolygon, point, polygon } from "@turf/turf";
+import {
+  booleanPointInPolygon,
+  center,
+  multiPolygon,
+  point,
+  polygon,
+} from "@turf/turf";
 import { MathUtils, Spherical, Vector3 } from "three";
 
 export const isLocationInRegion = (
@@ -11,15 +16,26 @@ export const isLocationInRegion = (
   const p = point([longitude, latitude]);
   if (feature.geometry.type === "Polygon") {
     const region = polygon(feature.geometry.coordinates);
-    return turf.booleanPointInPolygon(p, region);
+    return booleanPointInPolygon(p, region);
   } else if (feature.geometry.type === "MultiPolygon") {
     const region = multiPolygon(feature.geometry.coordinates);
-    return turf.booleanPointInPolygon(p, region);
+    return booleanPointInPolygon(p, region);
   }
   return false;
 };
 
-export function GPSToCartesian(lat: number, lng: number, radius: number) {
+export const getPolygonCenter = (feature: GeoFeatures) => {
+  if (feature.geometry.type === "MultiPolygon") {
+    const p = multiPolygon(feature.geometry.coordinates);
+    const c = center(p);
+    return c.geometry.coordinates;
+  }
+  const p = polygon(feature.geometry.coordinates);
+  const c = center(p);
+  return c.geometry.coordinates;
+};
+
+export function GPSToCartesian(lng: number, lat: number, radius: number) {
   const spherical = new Spherical(
     radius, // radius
     MathUtils.degToRad(90 - lat), // phi (latitude) in radians

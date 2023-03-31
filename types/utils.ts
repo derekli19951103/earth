@@ -25,3 +25,5 @@ export interface GeoFeatures {
   properties: any;
   type: string;
 }
+
+export type EarthView = "Cities" | "Borders" | "Realistic" | "Combined";

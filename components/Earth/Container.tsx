@@ -1,14 +1,11 @@
-import { GPSToCartesian } from "@/helpers/functions/geo";
-import { GeoFeatures } from "@/types/utils";
+import { capitalize } from "@/helpers/functions/text";
+import { EarthView, GeoFeatures } from "@/types/utils";
 import { OrbitControls, Stats } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ACESFilmicToneMapping,
-  InstancedMesh,
-  Object3D,
-  sRGBEncoding,
-} from "three";
+import { Canvas } from "@react-three/fiber";
+import { Segmented, Statistic } from "antd";
+import { useEffect, useState } from "react";
+import { ACESFilmicToneMapping, sRGBEncoding } from "three";
+import { Cities } from "./Cities";
 import { Earth, EARTH_RADIUS } from "./Earth";
 import { Territories } from "./Territories";
 
@@ -21,70 +18,86 @@ export const EarthContainer = () => {
     type: string;
     features: GeoFeatures[];
   }>();
+  const [view, setView] = useState<EarthView>("Realistic");
+  const [country, setCountry] = useState<GeoFeatures>();
+  const [city, setCity] = useState<GeoFeatures>();
 
   useEffect(() => {
     fetch("/countries.geojson")
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
         setGeoJson(data);
       });
 
     fetch("/cities.geojson")
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
         setCityGeoJson(data);
       });
   }, []);
 
-  return (
-    <Canvas
-      tabIndex={1}
-      camera={{ position: [0, 0, 200] }}
-      onContextMenu={(e) => e.preventDefault()}
-      onCreated={({ gl }) => {
-        gl.toneMapping = ACESFilmicToneMapping;
-        gl.outputEncoding = sRGBEncoding;
-      }}
-    >
-      <Earth countryData={geoJson?.features} />
-
-      {geoJson && <Territories countryData={geoJson.features} />}
-
-      {cityGeoJson && <CITIES features={cityGeoJson.features} />}
-
-      <OrbitControls minDistance={EARTH_RADIUS + 50} />
-      <Stats />
-    </Canvas>
-  );
-};
-
-const CITIES = (props: { features: GeoFeatures[] }) => {
-  const { features } = props;
-  const meshRef = useRef<InstancedMesh>(null);
-  const tempObject = useRef(new Object3D());
-
-  const { raycaster } = useThree();
-
   useEffect(() => {
-    for (let i = 0; i < features.length; i++) {
-      const coord = features[i].geometry.coordinates[0][0];
-
-      const pos = GPSToCartesian(coord[1], coord[0], EARTH_RADIUS + 1);
-      tempObject.current!.position.set(pos.x, pos.y, pos.z);
-      tempObject.current!.updateMatrix();
-      meshRef.current!.setMatrixAt(i, tempObject.current!.matrix);
-    }
-    meshRef.current!.instanceMatrix.needsUpdate = true;
-  }, []);
-
-  useFrame(() => {});
+    console.log({ country, city });
+  }, [country, city]);
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, features.length]}>
-      <boxGeometry args={[0.1, 0.1, 0.1]} />
-      <meshBasicMaterial color="white" />
-    </instancedMesh>
+    <>
+      <Canvas
+        tabIndex={1}
+        camera={{ position: [0, 0, 200] }}
+        onContextMenu={(e) => e.preventDefault()}
+        onCreated={({ gl }) => {
+          gl.toneMapping = ACESFilmicToneMapping;
+          gl.outputEncoding = sRGBEncoding;
+        }}
+      >
+        <Earth
+          countryData={geoJson?.features}
+          config={{
+            earthTextureEnabled: view === "Realistic" || view === "Combined",
+            cloudVisible: view === "Realistic" || view === "Combined",
+          }}
+          onHoverCountry={setCountry}
+        />
+
+        {geoJson && (view === "Borders" || view === "Combined") && (
+          <Territories countryData={geoJson.features} />
+        )}
+
+        {cityGeoJson && (view === "Cities" || view === "Combined") && (
+          <Cities features={cityGeoJson.features} onHoverCity={setCity} />
+        )}
+
+        <OrbitControls minDistance={EARTH_RADIUS + 1} enablePan={false} />
+        <Stats />
+      </Canvas>
+
+      <div style={{ position: "absolute", bottom: 10, right: 10 }}>
+        <Segmented
+          options={["Cities", "Borders", "Realistic", "Combined"]}
+          value={view}
+          onChange={(e) => setView(e as EarthView)}
+        />
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: 10,
+          left: 10,
+          borderRadius: 10,
+          backgroundColor: "white",
+          padding: 10,
+        }}
+      >
+        <Statistic title="Country" value={country?.properties.name || "None"} />
+        {(view === "Cities" || view === "Combined") && (
+          <Statistic
+            title="City"
+            value={capitalize(city?.properties.NAME || "None")}
+          />
+        )}
+      </div>
+    </>
   );
 };
