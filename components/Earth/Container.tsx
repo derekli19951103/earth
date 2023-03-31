@@ -1,8 +1,9 @@
 import { capitalize } from "@/helpers/functions/text";
 import { EarthView, GeoFeatures } from "@/types/utils";
+import { UploadOutlined } from "@ant-design/icons";
 import { OrbitControls, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { Segmented, Statistic } from "antd";
+import { Button, Segmented, Statistic, Upload } from "antd";
 import { useEffect, useState } from "react";
 import { ACESFilmicToneMapping, sRGBEncoding } from "three";
 import { Cities } from "./Cities";
@@ -21,6 +22,7 @@ export const EarthContainer = () => {
   const [view, setView] = useState<EarthView>("Realistic");
   const [country, setCountry] = useState<GeoFeatures>();
   const [city, setCity] = useState<GeoFeatures>();
+  const [image, setImage] = useState<File>();
 
   useEffect(() => {
     fetch("/countries.geojson")
@@ -35,10 +37,6 @@ export const EarthContainer = () => {
         setCityGeoJson(data);
       });
   }, []);
-
-  useEffect(() => {
-    console.log({ country, city });
-  }, [country, city]);
 
   return (
     <>
@@ -58,6 +56,7 @@ export const EarthContainer = () => {
             cloudVisible: view === "Realistic" || view === "Combined",
           }}
           onHoverCountry={setCountry}
+          imageFile={image}
         />
 
         {geoJson && (view === "Borders" || view === "Combined") && (
@@ -97,6 +96,28 @@ export const EarthContainer = () => {
             value={capitalize(city?.properties.NAME || "None")}
           />
         )}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 10,
+          right: 10,
+          borderRadius: 10,
+          backgroundColor: "white",
+          padding: 10,
+        }}
+      >
+        <Upload
+          onChange={(info) => {
+            if (info.file.status === "done") {
+              setImage(info.file.originFileObj);
+            }
+          }}
+          showUploadList={{ showRemoveIcon: false }}
+        >
+          <Button icon={<UploadOutlined />}>Upload Image</Button>
+        </Upload>
       </div>
     </>
   );

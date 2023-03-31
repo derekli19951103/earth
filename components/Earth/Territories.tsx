@@ -32,58 +32,6 @@ const Territory = (props: { feature: GeoFeatures }) => {
 export const Territories = (props: { countryData: GeoFeatures[] }) => {
   const { camera } = useThree();
 
-  const handleDropFile = async (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (e.dataTransfer) {
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        const file = files[0];
-        if (file) {
-          const tags = await ExifReader.load(file);
-          if (tags) {
-            console.log(tags);
-
-            const lng = tags["GPSLongitude"]?.description;
-            const lat = tags["GPSLatitude"]?.description;
-            const lngRef = tags["GPSLongitudeRef"]?.description[0];
-            const latRef = tags["GPSLatitudeRef"]?.description[0];
-
-            if (lat && lng && latRef && lngRef) {
-              const realLat = Number(lat) * (latRef === "N" ? 1 : -1);
-              const realLng = Number(lng) * (lngRef === "E" ? 1 : -1);
-              const pos = GPSToCartesian(realLng, realLat, EARTH_RADIUS + 50);
-
-              camera.lookAt(0, 0, 0);
-
-              const initCameraPos = camera.position.clone();
-              new Tween({
-                x: initCameraPos.x,
-                y: initCameraPos.y,
-                z: initCameraPos.z,
-              })
-                .to({ x: pos.x, y: pos.y, z: pos.z }, 1000)
-                .interpolation(Interpolation.CatmullRom)
-                .onUpdate(({ x, y, z }) => {
-                  camera.position.set(x, y, z);
-                })
-                .start();
-            }
-          }
-        }
-      }
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener("drop", handleDropFile);
-
-    return () => {
-      window.removeEventListener("drop", handleDropFile);
-    };
-  }, []);
-
   return (
     <>
       {props.countryData.map((f, index: number) => {

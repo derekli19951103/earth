@@ -9,7 +9,8 @@ import atmosVert from "@/helpers/shaders/atmos.vert.glsl";
 import { GradientEmissiveAddon } from "@/helpers/shaders/gradient-emissive";
 import { GeoFeatures } from "@/types/utils";
 import { ThreeEvent, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { update } from "@tweenjs/tween.js";
+import { Interpolation, Tween, update } from "@tweenjs/tween.js";
+import ExifReader from "exifreader";
 import { useEffect, useRef } from "react";
 import {
   AdditiveBlending,
@@ -28,10 +29,11 @@ export const Earth = (props: {
   countryData?: GeoFeatures[];
   config?: { earthTextureEnabled?: boolean; cloudVisible?: boolean };
   onHoverCountry: (country: GeoFeatures) => void;
+  imageFile?: File;
 }) => {
-  const { countryData, config, onHoverCountry } = props;
+  const { countryData, config, onHoverCountry, imageFile } = props;
 
-  const { scene } = useThree();
+  const { scene, camera } = useThree();
   const lightGroupRef = useRef<Group>(null);
   const spotLight = useRef<SpotLight>(null);
   const earthMaterailRef = useRef<MeshStandardMaterial>(null);
@@ -74,22 +76,73 @@ export const Earth = (props: {
     }
   }, [config?.earthTextureEnabled]);
 
+  const moveToImageLocation = (imageFile: File) => {
+    ExifReader.load(imageFile).then((tags) => {
+      console.log(tags);
+
+      const lng = tags["GPSLongitude"]?.description;
+      const lat = tags["GPSLatitude"]?.description;
+      const lngRef = tags["GPSLongitudeRef"]?.description[0];
+      const latRef = tags["GPSLatitudeRef"]?.description[0];
+
+      if (lat && lng && latRef && lngRef) {
+        const realLat = Number(lat) * (latRef === "N" ? 1 : -1);
+        const realLng = Number(lng) * (lngRef === "E" ? 1 : -1);
+        const pos = GPSToCartesian(realLng, realLat, EARTH_RADIUS + 50);
+
+        const initCameraPos = camera.position.clone();
+        new Tween({
+          x: initCameraPos.x,
+          y: initCameraPos.y,
+          z: initCameraPos.z,
+        })
+          .to({ x: pos.x, y: pos.y, z: pos.z }, 1000)
+          .interpolation(Interpolation.CatmullRom)
+          .onUpdate(({ x, y, z }) => {
+            camera.position.set(x, y, z);
+          })
+          .start();
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (imageFile) {
+      moveToImageLocation(imageFile);
+    }
+  }, [imageFile]);
+
   const slienceDefaultEvents = (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
+  const handleDropFile = async (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.dataTransfer) {
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file) {
+          moveToImageLocation(file);
+        }
+      }
+    }
+  };
+
   useEffect(() => {
     window.addEventListener("dragleave", slienceDefaultEvents);
-
     window.addEventListener("dragover", slienceDefaultEvents);
-
     window.addEventListener("dragenter", slienceDefaultEvents);
+    window.addEventListener("drop", handleDropFile);
 
     return () => {
       window.removeEventListener("dragleave", slienceDefaultEvents);
       window.removeEventListener("dragover", slienceDefaultEvents);
       window.removeEventListener("dragenter", slienceDefaultEvents);
+      window.removeEventListener("drop", handleDropFile);
     };
   }, []);
 
