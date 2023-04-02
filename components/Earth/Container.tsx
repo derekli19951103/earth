@@ -105,12 +105,13 @@ export const EarthContainer = () => {
           right: 10,
           borderRadius: 10,
           backgroundColor: "white",
-          padding: 10,
         }}
       >
         <Upload
           onChange={(info) => {
             if (info.file.status === "done") {
+              setImage(info.file.originFileObj);
+            } else if (info.file.status === "error") {
               setImage(info.file.originFileObj);
             }
           }}
