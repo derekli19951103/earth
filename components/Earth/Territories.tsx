@@ -1,9 +1,5 @@
-import { GPSToCartesian } from "@/helpers/functions/geo";
 import { GeoFeatures } from "@/types/utils";
-import { useThree } from "@react-three/fiber";
-import { Tween, Interpolation } from "@tweenjs/tween.js";
-import ExifReader from "exifreader";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { LineSegments } from "three";
 import { GeoJsonGeometry } from "three-geojson-geometry";
 import { EARTH_RADIUS } from "./Earth";
@@ -30,8 +26,6 @@ const Territory = (props: { feature: GeoFeatures }) => {
 };
 
 export const Territories = (props: { countryData: GeoFeatures[] }) => {
-  const { camera } = useThree();
-
   return (
     <>
       {props.countryData.map((f, index: number) => {

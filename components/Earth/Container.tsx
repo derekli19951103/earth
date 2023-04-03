@@ -1,21 +1,19 @@
-import {
-  GetGeoObjectsDocument,
-  GetSessionDocument,
-} from "@/graphql/gql/graphql";
+import { client } from "@/graphql/client";
+import { GetSessionDocument } from "@/graphql/gql/graphql";
 import { capitalize } from "@/helpers/functions/text";
+import { uploadFile } from "@/services/upload";
 import { EarthView, GeoFeatures } from "@/types/utils";
 import { UploadOutlined } from "@ant-design/icons";
 import { OrbitControls, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Button, Segmented, Statistic, Upload } from "antd";
+import { RcFile } from "antd/es/upload";
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { ACESFilmicToneMapping, sRGBEncoding } from "three";
 import { Cities } from "./Cities";
 import { Earth, EARTH_RADIUS } from "./Earth";
 import { Territories } from "./Territories";
-import useSWR from "swr";
-import request from "graphql-request";
-import { client } from "@/graphql/client";
 
 export const EarthContainer = () => {
   const [geoJson, setGeoJson] = useState<{
@@ -45,6 +43,48 @@ export const EarthContainer = () => {
       .then((data) => {
         setCityGeoJson(data);
       });
+  }, []);
+
+  const slienceDefaultEvents = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDropFile = async (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.dataTransfer) {
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file) {
+          try {
+            const url = await uploadFile("images/", file);
+            setImage(file);
+          } catch (e) {
+            console.log({
+              name: "Upload error",
+              message: (e as Error).message,
+            });
+          }
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("dragleave", slienceDefaultEvents);
+    window.addEventListener("dragover", slienceDefaultEvents);
+    window.addEventListener("dragenter", slienceDefaultEvents);
+    window.addEventListener("drop", handleDropFile);
+
+    return () => {
+      window.removeEventListener("dragleave", slienceDefaultEvents);
+      window.removeEventListener("dragover", slienceDefaultEvents);
+      window.removeEventListener("dragenter", slienceDefaultEvents);
+      window.removeEventListener("drop", handleDropFile);
+    };
   }, []);
 
   return (
@@ -107,7 +147,7 @@ export const EarthContainer = () => {
         )}
       </div>
 
-      <div
+      {/* <div
         style={{
           position: "absolute",
           top: 10,
@@ -119,16 +159,29 @@ export const EarthContainer = () => {
         <Upload
           onChange={(info) => {
             if (info.file.status === "done") {
-              setImage(info.file.originFileObj);
-            } else if (info.file.status === "error") {
+              console.log(info);
               setImage(info.file.originFileObj);
             }
           }}
+          accept="image/jpeg, image/png, image/gif, image/webp, image/heic"
           showUploadList={{ showRemoveIcon: false }}
+          itemRender={(node, file) => {
+            return <a href={file.response}>{node}</a>;
+          }}
+          customRequest={async ({ file, onSuccess, onError }) => {
+            const f = file as RcFile;
+
+            try {
+              const url = await uploadFile("images/", f);
+              onSuccess!(url, undefined);
+            } catch (e) {
+              onError!({ name: "Upload error", message: (e as Error).message });
+            }
+          }}
         >
           <Button icon={<UploadOutlined />}>Upload Image</Button>
         </Upload>
-      </div>
+      </div> */}
     </>
   );
 };

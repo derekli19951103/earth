@@ -112,40 +112,6 @@ export const Earth = (props: {
     }
   }, [imageFile]);
 
-  const slienceDefaultEvents = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDropFile = async (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (e.dataTransfer) {
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        const file = files[0];
-        if (file) {
-          moveToImageLocation(file);
-        }
-      }
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener("dragleave", slienceDefaultEvents);
-    window.addEventListener("dragover", slienceDefaultEvents);
-    window.addEventListener("dragenter", slienceDefaultEvents);
-    window.addEventListener("drop", handleDropFile);
-
-    return () => {
-      window.removeEventListener("dragleave", slienceDefaultEvents);
-      window.removeEventListener("dragover", slienceDefaultEvents);
-      window.removeEventListener("dragenter", slienceDefaultEvents);
-      window.removeEventListener("drop", handleDropFile);
-    };
-  }, []);
-
   useFrame((state) => {
     if (lightGroupRef.current) {
       lightGroupRef.current.quaternion.copy(state.camera.quaternion);
