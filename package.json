@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate": "graphql-codegen"
   },
   "dependencies": {
     "@ant-design/icons": "^5.0.1",
@@ -22,11 +23,19 @@
     "eslint": "8.36.0",
     "eslint-config-next": "13.2.4",
     "exifreader": "^4.12.0",
+    "graphql": "^16.6.0",
+    "graphql-request": "^5.2.0",
     "next": "13.2.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-is": "^18.2.0",
+    "swr": "^2.1.2",
     "three": "^0.150.1",
     "three-geojson-geometry": "^1.3.1",
     "typescript": "5.0.2"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^3.2.2",
+    "@graphql-codegen/client-preset": "^2.1.1"
   }
 }

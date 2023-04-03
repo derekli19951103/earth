@@ -1,0 +1,12 @@
+query GetGeoObjects($userId: Int!) {
+  geoObjects(userId: $userId) {
+    id
+    type
+    title
+    content
+    imageUrl
+    properties
+    createdAt
+    updatedAt
+  }
+}

@@ -1,3 +1,7 @@
+import {
+  GetGeoObjectsDocument,
+  GetSessionDocument,
+} from "@/graphql/gql/graphql";
 import { capitalize } from "@/helpers/functions/text";
 import { EarthView, GeoFeatures } from "@/types/utils";
 import { UploadOutlined } from "@ant-design/icons";
@@ -9,6 +13,9 @@ import { ACESFilmicToneMapping, sRGBEncoding } from "three";
 import { Cities } from "./Cities";
 import { Earth, EARTH_RADIUS } from "./Earth";
 import { Territories } from "./Territories";
+import useSWR from "swr";
+import request from "graphql-request";
+import { client } from "@/graphql/client";
 
 export const EarthContainer = () => {
   const [geoJson, setGeoJson] = useState<{
@@ -23,6 +30,8 @@ export const EarthContainer = () => {
   const [country, setCountry] = useState<GeoFeatures>();
   const [city, setCity] = useState<GeoFeatures>();
   const [image, setImage] = useState<File>();
+
+  const { data, error } = useSWR("/", () => client.request(GetSessionDocument));
 
   useEffect(() => {
     fetch("/countries.geojson")

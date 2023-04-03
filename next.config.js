@@ -3,7 +3,7 @@ const nextConfig = {
   experimental: {
     appDir: true,
   },
-  webpack: (config, options) => {
+  webpack: (config) => {
     config.module.rules.push({
       test: /\.glsl/,
       type: "asset/source",
