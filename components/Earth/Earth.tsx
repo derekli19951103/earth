@@ -57,12 +57,6 @@ export const Earth = (props: {
 
   useEffect(() => {
     scene.background = skybox;
-
-    window.addEventListener("keypress", (e) => {
-      if (e.key === "e") {
-        console.log(scene.children);
-      }
-    });
   }, [scene, skybox]);
 
   useEffect(() => {

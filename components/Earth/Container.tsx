@@ -4,6 +4,7 @@ import {
   GeoObject,
   GetGeoObjectsDocument,
 } from "@/graphql/gql/graphql";
+import { heicToJPG } from "@/helpers/functions/file";
 import { getImageGeoLocation, GPSToCartesian } from "@/helpers/functions/geo";
 import { capitalize } from "@/helpers/functions/text";
 import { uploadFile } from "@/services/upload";
@@ -12,14 +13,12 @@ import { Html, OrbitControls, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Segmented, Statistic } from "antd";
 import { useContext, useEffect, useState } from "react";
+import useSWR from "swr";
 import { ACESFilmicToneMapping, sRGBEncoding } from "three";
 import { AppContext } from "../Context";
 import { Cities } from "./Cities";
 import { Earth, EARTH_RADIUS } from "./Earth";
 import { Territories } from "./Territories";
-import useSWR from "swr";
-import Imgix from "react-imgix";
-import { heicToJPG } from "@/helpers/functions/file";
 
 export const EarthContainer = () => {
   const { user } = useContext(AppContext);
@@ -142,6 +141,7 @@ export const EarthContainer = () => {
         )}
 
         {geoObjects.data?.geoObjects?.map((geoObject) => {
+          //@ts-ignore
           return <GeoTag key={geoObject.id} geoObject={geoObject} />;
         })}
 
@@ -182,13 +182,13 @@ const GeoTag = (props: { geoObject: GeoObject }) => {
   const { geoObject } = props;
   const [imgSrc, setImgSrc] = useState<string>();
 
-  useEffect(() => {
-    if (geoObject.imageUrl) {
-      heicToJPG(geoObject.imageUrl).then((src) => {
-        setImgSrc(src);
-      });
-    }
-  }, [geoObject.imageUrl]);
+  // useEffect(() => {
+  //   if (geoObject.imageUrl) {
+  //     heicToJPG(geoObject.imageUrl).then((src) => {
+  //       setImgSrc(src);
+  //     });
+  //   }
+  // }, [geoObject.imageUrl]);
 
   return (
     <Html
