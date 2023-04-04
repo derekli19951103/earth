@@ -8,7 +8,8 @@ query GetSession {
 
 mutation Login($input: LoginInput!) {
   login(input: $input) {
-    id
+    username
+    email
     token
     userId
     createdAt

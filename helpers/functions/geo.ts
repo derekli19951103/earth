@@ -6,6 +6,7 @@ import {
   point,
   polygon,
 } from "@turf/turf";
+import ExifReader from "exifreader";
 import { MathUtils, Spherical, Vector3 } from "three";
 
 export const isLocationInRegion = (
@@ -58,3 +59,20 @@ export function cartesianToGPS(x: number, y: number, z: number) {
 
   return [longitude, latitude];
 }
+
+export const getImageGeoLocation = async (imageFile: File) => {
+  const tags = await ExifReader.load(imageFile);
+  if (tags) {
+    console.log(tags);
+    const lng = tags["GPSLongitude"]?.description;
+    const lat = tags["GPSLatitude"]?.description;
+    const lngRef = tags["GPSLongitudeRef"]?.description[0];
+    const latRef = tags["GPSLatitudeRef"]?.description[0];
+    if (lat && lng && latRef && lngRef) {
+      const realLat = Number(lat) * (latRef === "N" ? 1 : -1);
+      const realLng = Number(lng) * (lngRef === "E" ? 1 : -1);
+
+      return [realLng, realLat] as [number, number];
+    }
+  }
+};

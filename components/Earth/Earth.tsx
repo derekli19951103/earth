@@ -10,7 +10,6 @@ import { GradientEmissiveAddon } from "@/helpers/shaders/gradient-emissive";
 import { GeoFeatures } from "@/types/utils";
 import { ThreeEvent, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Interpolation, Tween, update } from "@tweenjs/tween.js";
-import ExifReader from "exifreader";
 import { useEffect, useRef } from "react";
 import {
   AdditiveBlending,
@@ -29,9 +28,9 @@ export const Earth = (props: {
   countryData?: GeoFeatures[];
   config?: { earthTextureEnabled?: boolean; cloudVisible?: boolean };
   onHoverCountry: (country: GeoFeatures) => void;
-  imageFile?: File;
+  destinationLoc?: [number, number];
 }) => {
-  const { countryData, config, onHoverCountry, imageFile } = props;
+  const { countryData, config, onHoverCountry, destinationLoc } = props;
 
   const { scene, camera } = useThree();
   const lightGroupRef = useRef<Group>(null);
@@ -76,41 +75,28 @@ export const Earth = (props: {
     }
   }, [config?.earthTextureEnabled]);
 
-  const moveToImageLocation = (imageFile: File) => {
-    ExifReader.load(imageFile).then((tags) => {
-      console.log(tags);
-
-      const lng = tags["GPSLongitude"]?.description;
-      const lat = tags["GPSLatitude"]?.description;
-      const lngRef = tags["GPSLongitudeRef"]?.description[0];
-      const latRef = tags["GPSLatitudeRef"]?.description[0];
-
-      if (lat && lng && latRef && lngRef) {
-        const realLat = Number(lat) * (latRef === "N" ? 1 : -1);
-        const realLng = Number(lng) * (lngRef === "E" ? 1 : -1);
-        const pos = GPSToCartesian(realLng, realLat, EARTH_RADIUS + 50);
-
-        const initCameraPos = camera.position.clone();
-        new Tween({
-          x: initCameraPos.x,
-          y: initCameraPos.y,
-          z: initCameraPos.z,
-        })
-          .to({ x: pos.x, y: pos.y, z: pos.z }, 1000)
-          .interpolation(Interpolation.CatmullRom)
-          .onUpdate(({ x, y, z }) => {
-            camera.position.set(x, y, z);
-          })
-          .start();
-      }
-    });
-  };
-
   useEffect(() => {
-    if (imageFile) {
-      moveToImageLocation(imageFile);
+    if (destinationLoc) {
+      const pos = GPSToCartesian(
+        destinationLoc[0],
+        destinationLoc[1],
+        EARTH_RADIUS + 50
+      );
+
+      const initCameraPos = camera.position.clone();
+      new Tween({
+        x: initCameraPos.x,
+        y: initCameraPos.y,
+        z: initCameraPos.z,
+      })
+        .to({ x: pos.x, y: pos.y, z: pos.z }, 1000)
+        .interpolation(Interpolation.CatmullRom)
+        .onUpdate(({ x, y, z }) => {
+          camera.position.set(x, y, z);
+        })
+        .start();
     }
-  }, [imageFile]);
+  }, [destinationLoc]);
 
   useFrame((state) => {
     if (lightGroupRef.current) {

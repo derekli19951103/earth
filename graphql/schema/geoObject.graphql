@@ -1,12 +1,34 @@
 query GetGeoObjects($userId: Int!) {
   geoObjects(userId: $userId) {
-    id
-    type
-    title
-    content
-    imageUrl
-    properties
-    createdAt
-    updatedAt
+    ...GeoObjectFields
   }
+}
+
+mutation CreateGeoObject($input: CreateGeoObjectInput!) {
+  createGeoObject(input: $input) {
+    ...GeoObjectFields
+  }
+}
+
+mutation UpdateGeoObject($input: UpdateGeoObjectInput!) {
+  updateGeoObject(input: $input) {
+    ...GeoObjectFields
+  }
+}
+
+mutation DeleteGeoObject($id: Int!) {
+  deleteGeoObject(id: $id) {
+    ...GeoObjectFields
+  }
+}
+
+fragment GeoObjectFields on GeoObject {
+  id
+  type
+  title
+  content
+  imageUrl
+  properties
+  createdAt
+  updatedAt
 }

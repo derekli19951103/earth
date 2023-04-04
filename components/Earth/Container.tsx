@@ -1,21 +1,29 @@
 import { client } from "@/graphql/client";
-import { GetSessionDocument } from "@/graphql/gql/graphql";
+import {
+  CreateGeoObjectDocument,
+  GeoObject,
+  GetGeoObjectsDocument,
+} from "@/graphql/gql/graphql";
+import { getImageGeoLocation, GPSToCartesian } from "@/helpers/functions/geo";
 import { capitalize } from "@/helpers/functions/text";
 import { uploadFile } from "@/services/upload";
 import { EarthView, GeoFeatures } from "@/types/utils";
-import { UploadOutlined } from "@ant-design/icons";
-import { OrbitControls, Stats } from "@react-three/drei";
+import { Html, OrbitControls, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { Button, Segmented, Statistic, Upload } from "antd";
-import { RcFile } from "antd/es/upload";
-import { useEffect, useState } from "react";
-import useSWR from "swr";
+import { Segmented, Statistic } from "antd";
+import { useContext, useEffect, useState } from "react";
 import { ACESFilmicToneMapping, sRGBEncoding } from "three";
+import { AppContext } from "../Context";
 import { Cities } from "./Cities";
 import { Earth, EARTH_RADIUS } from "./Earth";
 import { Territories } from "./Territories";
+import useSWR from "swr";
+import Imgix from "react-imgix";
+import { heicToJPG } from "@/helpers/functions/file";
 
 export const EarthContainer = () => {
+  const { user } = useContext(AppContext);
+
   const [geoJson, setGeoJson] = useState<{
     type: string;
     features: GeoFeatures[];
@@ -27,9 +35,13 @@ export const EarthContainer = () => {
   const [view, setView] = useState<EarthView>("Realistic");
   const [country, setCountry] = useState<GeoFeatures>();
   const [city, setCity] = useState<GeoFeatures>();
-  const [image, setImage] = useState<File>();
+  const [destinationLoc, setDestinationLoc] = useState<[number, number]>();
 
-  const { data, error } = useSWR("/", () => client.request(GetSessionDocument));
+  const geoObjects = useSWR("geoobjects", () => {
+    if (user.id) {
+      return client.request(GetGeoObjectsDocument, { userId: user.id });
+    }
+  });
 
   useEffect(() => {
     fetch("/countries.geojson")
@@ -61,7 +73,20 @@ export const EarthContainer = () => {
         if (file) {
           try {
             const url = await uploadFile("images/", file);
-            setImage(file);
+            if (url) {
+              const destination = await getImageGeoLocation(file);
+              const geoObject = await client.request(CreateGeoObjectDocument, {
+                input: {
+                  type: "image",
+                  title: "Image",
+                  imageUrl: url,
+                  properties: { gps: destination },
+                },
+              });
+              if (geoObject.createGeoObject) {
+                setDestinationLoc(destination);
+              }
+            }
           } catch (e) {
             console.log({
               name: "Upload error",
@@ -105,7 +130,7 @@ export const EarthContainer = () => {
             cloudVisible: view === "Realistic" || view === "Combined",
           }}
           onHoverCountry={setCountry}
-          imageFile={image}
+          destinationLoc={destinationLoc}
         />
 
         {geoJson && (view === "Borders" || view === "Combined") && (
@@ -115,6 +140,10 @@ export const EarthContainer = () => {
         {cityGeoJson && (view === "Cities" || view === "Combined") && (
           <Cities features={cityGeoJson.features} onHoverCity={setCity} />
         )}
+
+        {geoObjects.data?.geoObjects?.map((geoObject) => {
+          return <GeoTag key={geoObject.id} geoObject={geoObject} />;
+        })}
 
         <OrbitControls minDistance={EARTH_RADIUS + 1} enablePan={false} />
         <Stats />
@@ -134,8 +163,7 @@ export const EarthContainer = () => {
           bottom: 10,
           left: 10,
           borderRadius: 10,
-          backgroundColor: "white",
-          padding: 10,
+          backgroundColor: "black",
         }}
       >
         <Statistic title="Country" value={country?.properties.name || "None"} />
@@ -146,42 +174,34 @@ export const EarthContainer = () => {
           />
         )}
       </div>
-
-      {/* <div
-        style={{
-          position: "absolute",
-          top: 10,
-          right: 10,
-          borderRadius: 10,
-          backgroundColor: "white",
-        }}
-      >
-        <Upload
-          onChange={(info) => {
-            if (info.file.status === "done") {
-              console.log(info);
-              setImage(info.file.originFileObj);
-            }
-          }}
-          accept="image/jpeg, image/png, image/gif, image/webp, image/heic"
-          showUploadList={{ showRemoveIcon: false }}
-          itemRender={(node, file) => {
-            return <a href={file.response}>{node}</a>;
-          }}
-          customRequest={async ({ file, onSuccess, onError }) => {
-            const f = file as RcFile;
-
-            try {
-              const url = await uploadFile("images/", f);
-              onSuccess!(url, undefined);
-            } catch (e) {
-              onError!({ name: "Upload error", message: (e as Error).message });
-            }
-          }}
-        >
-          <Button icon={<UploadOutlined />}>Upload Image</Button>
-        </Upload>
-      </div> */}
     </>
+  );
+};
+
+const GeoTag = (props: { geoObject: GeoObject }) => {
+  const { geoObject } = props;
+  const [imgSrc, setImgSrc] = useState<string>();
+
+  useEffect(() => {
+    if (geoObject.imageUrl) {
+      heicToJPG(geoObject.imageUrl).then((src) => {
+        setImgSrc(src);
+      });
+    }
+  }, [geoObject.imageUrl]);
+
+  return (
+    <Html
+      position={GPSToCartesian(
+        geoObject.properties.gps[0],
+        geoObject.properties.gps[1],
+        EARTH_RADIUS + 1
+      )}
+      occlude
+    >
+      <div style={{ padding: 10, backgroundColor: "white" }}>
+        <img src={imgSrc} alt="..." width={100} />
+      </div>
+    </Html>
   );
 };
