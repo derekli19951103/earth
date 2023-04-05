@@ -31,4 +31,6 @@ fragment GeoObjectFields on GeoObject {
   properties
   createdAt
   updatedAt
+  lat
+  lng
 }

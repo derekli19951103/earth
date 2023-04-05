@@ -8,8 +8,9 @@ const config: CodegenConfig = {
   generates: {
     "./graphql/gql/": {
       preset: "client",
-      config: {},
-      plugins: [],
+      presetConfig: {
+        fragmentMasking: false,
+      },
     },
   },
 };

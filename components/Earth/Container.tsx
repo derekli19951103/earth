@@ -1,23 +1,22 @@
 import { client } from "@/graphql/client";
 import {
   CreateGeoObjectDocument,
-  GeoObject,
   GetGeoObjectsDocument,
 } from "@/graphql/gql/graphql";
-import { heicToJPG } from "@/helpers/functions/file";
-import { getImageGeoLocation, GPSToCartesian } from "@/helpers/functions/geo";
+import { getImageGeoLocation } from "@/helpers/functions/geo";
 import { capitalize } from "@/helpers/functions/text";
 import { uploadFile } from "@/services/upload";
 import { EarthView, GeoFeatures } from "@/types/utils";
-import { Html, OrbitControls, Stats } from "@react-three/drei";
+import { OrbitControls, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { Segmented, Statistic } from "antd";
+import { message, Segmented, Statistic } from "antd";
 import { useContext, useEffect, useState } from "react";
 import useSWR from "swr";
 import { ACESFilmicToneMapping, sRGBEncoding } from "three";
 import { AppContext } from "../Context";
 import { Cities } from "./Cities";
 import { Earth, EARTH_RADIUS } from "./Earth";
+import { GeoTag } from "./GeoTag";
 import { Territories } from "./Territories";
 
 export const EarthContainer = () => {
@@ -36,9 +35,9 @@ export const EarthContainer = () => {
   const [city, setCity] = useState<GeoFeatures>();
   const [destinationLoc, setDestinationLoc] = useState<[number, number]>();
 
-  const geoObjects = useSWR("geoobjects", () => {
-    if (user.id) {
-      return client.request(GetGeoObjectsDocument, { userId: user.id });
+  const geoObjects = useSWR([user.id], ([userId]) => {
+    if (userId) {
+      return client.request(GetGeoObjectsDocument, { userId });
     }
   });
 
@@ -74,23 +73,26 @@ export const EarthContainer = () => {
             const url = await uploadFile("images/", file);
             if (url) {
               const destination = await getImageGeoLocation(file);
-              const geoObject = await client.request(CreateGeoObjectDocument, {
-                input: {
-                  type: "image",
-                  title: "Image",
-                  imageUrl: url,
-                  properties: { gps: destination },
-                },
-              });
-              if (geoObject.createGeoObject) {
-                setDestinationLoc(destination);
+              if (destination) {
+                const geoObject = await client.request(
+                  CreateGeoObjectDocument,
+                  {
+                    input: {
+                      type: "image",
+                      title: "Image",
+                      imageUrl: url,
+                      lng: destination[0],
+                      lat: destination[1],
+                    },
+                  }
+                );
+                if (geoObject.createGeoObject) {
+                  setDestinationLoc(destination);
+                }
               }
             }
           } catch (e) {
-            console.log({
-              name: "Upload error",
-              message: (e as Error).message,
-            });
+            message.error((e as Error).message);
           }
         }
       }
@@ -141,7 +143,6 @@ export const EarthContainer = () => {
         )}
 
         {geoObjects.data?.geoObjects?.map((geoObject) => {
-          //@ts-ignore
           return <GeoTag key={geoObject.id} geoObject={geoObject} />;
         })}
 
@@ -175,33 +176,5 @@ export const EarthContainer = () => {
         )}
       </div>
     </>
-  );
-};
-
-const GeoTag = (props: { geoObject: GeoObject }) => {
-  const { geoObject } = props;
-  const [imgSrc, setImgSrc] = useState<string>();
-
-  // useEffect(() => {
-  //   if (geoObject.imageUrl) {
-  //     heicToJPG(geoObject.imageUrl).then((src) => {
-  //       setImgSrc(src);
-  //     });
-  //   }
-  // }, [geoObject.imageUrl]);
-
-  return (
-    <Html
-      position={GPSToCartesian(
-        geoObject.properties.gps[0],
-        geoObject.properties.gps[1],
-        EARTH_RADIUS + 1
-      )}
-      occlude
-    >
-      <div style={{ padding: 10, backgroundColor: "white" }}>
-        <img src={imgSrc} alt="..." width={100} />
-      </div>
-    </Html>
   );
 };
