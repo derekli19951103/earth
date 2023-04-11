@@ -7,7 +7,7 @@ import {
 } from "@/graphql/gql/graphql";
 import { uploadFile } from "@/services/upload";
 import { InboxOutlined } from "@ant-design/icons";
-import { Radio, Table, Typography, Upload } from "antd";
+import { message, Radio, Table, Typography, Upload } from "antd";
 import { RcFile } from "antd/es/upload";
 import { useContext } from "react";
 import useSWR from "swr";
@@ -106,11 +106,15 @@ export const UploadData = () => {
                         handleDeleteUpload(r.id);
                         break;
                       case "share":
-                        window.navigator.clipboard.writeText(
-                          `${"https://earth-rho.vercel.app/"}share?dataUrl=${
-                            r.url
-                          }`
-                        );
+                        window.navigator.clipboard
+                          .writeText(
+                            `${"https://earth-rho.vercel.app/"}share?dataUrl=${
+                              r.url
+                            }`
+                          )
+                          .then(() => {
+                            message.success("Copied to clipboard");
+                          });
                         break;
                     }
                   }}

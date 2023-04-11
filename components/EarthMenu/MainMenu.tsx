@@ -1,11 +1,7 @@
 import { client } from "@/graphql/client";
 import { GetSessionDocument } from "@/graphql/gql/graphql";
-import {
-  CaretLeftOutlined,
-  InboxOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
-import { Avatar, Divider, Drawer, Space, Typography, Upload } from "antd";
+import { CaretLeftOutlined, UserOutlined } from "@ant-design/icons";
+import { Avatar, Divider, Drawer, Space } from "antd";
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../Context";
 import { ProfileCard } from "./ProfileCard";
