@@ -2,6 +2,8 @@ import { heicToJPG } from "@/helpers/functions/file";
 import { getUniqueName } from "@/helpers/functions/text";
 import { extname } from "path";
 
+const bucket = process.env.NODE_ENV === "production" ? "derek" : "derek-dev";
+
 export const uploadFile = async (folder: string, file: File) => {
   let fileName = "";
   let blob: Blob = file;
@@ -28,7 +30,7 @@ export const uploadFile = async (folder: string, file: File) => {
 
   const { publicUrl, presignedUrl } = await fetch("/api/upload", {
     method: "POST",
-    body: JSON.stringify({ bucket: "derek", key: fileName }),
+    body: JSON.stringify({ bucket: bucket, key: fileName }),
   }).then((res) =>
     res.json().then((res) => res as { publicUrl: string; presignedUrl: string })
   );
@@ -41,7 +43,7 @@ export const uploadFile = async (folder: string, file: File) => {
 
     await fetch("/api/upload/change-acl", {
       method: "POST",
-      body: JSON.stringify({ bucket: "derek", key: fileName }),
+      body: JSON.stringify({ bucket: bucket, key: fileName }),
     });
 
     if (upload.status === 200) {

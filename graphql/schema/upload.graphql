@@ -1,0 +1,23 @@
+fragment uploadFields on Upload {
+  id
+  type
+  url
+}
+
+query GetUploads($userId: Int!, $fileType: FileType!) {
+  getUploads(userId: $userId, fileType: $fileType) {
+    ...uploadFields
+  }
+}
+
+mutation CreateUpload($input: CreateUploadInput!) {
+  createUpload(input: $input) {
+    ...uploadFields
+  }
+}
+
+mutation DeleteUpload($id: Int!) {
+  deleteUpload(id: $id) {
+    ...uploadFields
+  }
+}

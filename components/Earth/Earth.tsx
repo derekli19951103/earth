@@ -26,7 +26,7 @@ export const EARTH_RADIUS = 100;
 
 export const Earth = (props: {
   countryData?: GeoFeatures[];
-  config?: { earthTextureEnabled?: boolean; cloudVisible?: boolean };
+  config: { earthTextureEnabled?: boolean; cloudVisible?: boolean };
   onHoverCountry: (country: GeoFeatures) => void;
   destinationLoc?: [number, number];
 }) => {
@@ -61,13 +61,13 @@ export const Earth = (props: {
 
   useEffect(() => {
     if (earthMaterailRef.current) {
-      earthMaterailRef.current.map = config?.earthTextureEnabled ? map : null;
-      earthMaterailRef.current.color = config?.earthTextureEnabled
+      earthMaterailRef.current.map = config.earthTextureEnabled ? map : null;
+      earthMaterailRef.current.color = config.earthTextureEnabled
         ? new Color()
         : new Color(0x000000);
       earthMaterailRef.current.needsUpdate = true;
     }
-  }, [config?.earthTextureEnabled]);
+  }, [config.earthTextureEnabled]);
 
   useEffect(() => {
     if (destinationLoc) {
@@ -98,6 +98,14 @@ export const Earth = (props: {
     }
     update();
   });
+
+  useEffect(() => {
+    window.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "p") {
+        console.log(scene.children);
+      }
+    });
+  }, []);
 
   const handleHighlightTerritory = (
     e: ThreeEvent<PointerEvent | MouseEvent>
@@ -171,7 +179,7 @@ export const Earth = (props: {
           />
         </mesh>
 
-        <mesh userData={{ type: "cloud" }} visible={config?.cloudVisible}>
+        <mesh userData={{ type: "cloud" }} visible={config.cloudVisible}>
           <sphereGeometry args={[EARTH_RADIUS + 1, 64, 64]} />
           <meshStandardMaterial
             map={cloudMap}
@@ -187,6 +195,7 @@ export const Earth = (props: {
         <shaderMaterial
           blending={AdditiveBlending}
           side={BackSide}
+          transparent
           vertexShader={atmosVert}
           fragmentShader={atmosFrag}
           uniforms={{

@@ -21,7 +21,12 @@ export const GeoTag = (props: { geoObject: GeoObjectFieldsFragment }) => {
       >
         <div style={{ marginBottom: 2 }}>{geoObject.title}</div>
         {geoObject.imageUrl && (
-          <img src={geoObject.imageUrl} alt="..." width={100} />
+          <img
+            src={geoObject.imageUrl}
+            alt="..."
+            width={100}
+            style={{ borderRadius: 8 }}
+          />
         )}
       </div>
     </Html>

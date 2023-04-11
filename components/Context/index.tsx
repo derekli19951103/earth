@@ -1,4 +1,5 @@
-import React, { createContext, ReactElement, ReactNode, useState } from "react";
+import { DataLayer, EarthView } from "@/types/utils";
+import React, { createContext, ReactNode, useState } from "react";
 
 // Define the types for the user info and system config
 type User = {
@@ -7,7 +8,11 @@ type User = {
   email?: string;
 };
 
-type SystemConfig = {};
+type SystemConfig = {
+  visualizeDataUrl?: string;
+  layer: DataLayer;
+  view: EarthView;
+};
 
 // Create a context for the user info and system config
 export const AppContext = createContext<{
@@ -16,13 +21,12 @@ export const AppContext = createContext<{
   systemConfig: SystemConfig;
   setSystemConfig: React.Dispatch<React.SetStateAction<SystemConfig>>;
 }>({
-  user: {
-    id: undefined,
-    username: undefined,
-    email: undefined,
-  },
+  user: {},
   setUser: () => {},
-  systemConfig: {},
+  systemConfig: {
+    layer: "Image",
+    view: "Realistic",
+  },
   setSystemConfig: () => {},
 });
 
@@ -31,13 +35,12 @@ export const AppProvider: React.FC<{ children?: ReactNode }> = ({
   children,
 }) => {
   // Set some default user info and system config
-  const [user, setUser] = useState<User>({
-    id: undefined,
-    username: undefined,
-    email: undefined,
-  });
+  const [user, setUser] = useState<User>({});
 
-  const [systemConfig, setSystemConfig] = useState<SystemConfig>({});
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>({
+    view: "Realistic",
+    layer: "Image",
+  });
 
   return (
     // Pass the user info and system config to the context provider

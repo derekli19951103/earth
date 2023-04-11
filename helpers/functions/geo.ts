@@ -1,9 +1,12 @@
 import { GeoFeatures } from "@/types/utils";
 import {
+  area,
   booleanPointInPolygon,
   center,
+  centerOfMass,
   multiPolygon,
   point,
+  pointOnFeature,
   polygon,
 } from "@turf/turf";
 import ExifReader from "exifreader";
@@ -27,12 +30,23 @@ export const isLocationInRegion = (
 
 export const getPolygonCenter = (feature: GeoFeatures) => {
   if (feature.geometry.type === "MultiPolygon") {
-    const p = multiPolygon(feature.geometry.coordinates);
-    const c = center(p);
+    const areas = feature.geometry.coordinates.map((c: any) =>
+      area(polygon(c))
+    );
+    let max = 0;
+    let maxIndex = 0;
+    for (let i = 0; i < areas.length; i++) {
+      const a = area(polygon(feature.geometry.coordinates[i]));
+      if (a > max) {
+        max = a;
+        maxIndex = i;
+      }
+    }
+    const c = pointOnFeature(polygon(feature.geometry.coordinates[maxIndex]));
     return c.geometry.coordinates;
   }
   const p = polygon(feature.geometry.coordinates);
-  const c = center(p);
+  const c = pointOnFeature(p);
   return c.geometry.coordinates;
 };
 

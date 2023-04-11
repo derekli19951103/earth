@@ -20,5 +20,5 @@ export const getUniqueName = (filename: string) => {
   const fileName = basename(filename, ext);
   const sanitizedFilename = sanitizeFilename(fileName);
   const uid = generate();
-  return `${sanitizedFilename}_${uid}${ext}`;
+  return `${uid}_${sanitizedFilename}${ext}`;
 };

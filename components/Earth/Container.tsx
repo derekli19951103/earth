@@ -1,18 +1,27 @@
-import { client } from "@/graphql/client";
+import { client, handleGQLError } from "@/graphql/client";
 import {
   CreateGeoObjectDocument,
   GetGeoObjectsDocument,
 } from "@/graphql/gql/graphql";
-import { getImageGeoLocation } from "@/helpers/functions/geo";
+import {
+  getImageGeoLocation,
+  getPolygonCenter,
+  GPSToCartesian,
+} from "@/helpers/functions/geo";
 import { capitalize } from "@/helpers/functions/text";
 import { uploadFile } from "@/services/upload";
-import { EarthView, GeoFeatures } from "@/types/utils";
-import { OrbitControls, Stats } from "@react-three/drei";
+import { DataLayer, EarthView, GeoFeatures } from "@/types/utils";
+import { Html, OrbitControls, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { message, Segmented, Statistic } from "antd";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import { ACESFilmicToneMapping, sRGBEncoding } from "three";
+import {
+  ACESFilmicToneMapping,
+  Quaternion,
+  sRGBEncoding,
+  Vector3,
+} from "three";
 import { AppContext } from "../Context";
 import { Cities } from "./Cities";
 import { Earth, EARTH_RADIUS } from "./Earth";
@@ -20,38 +29,88 @@ import { GeoTag } from "./GeoTag";
 import { Territories } from "./Territories";
 
 export const EarthContainer = () => {
-  const { user } = useContext(AppContext);
+  const { user, systemConfig, setSystemConfig } = useContext(AppContext);
 
-  const [geoJson, setGeoJson] = useState<{
+  const [countryJson, setCountryJson] = useState<{
     type: string;
     features: GeoFeatures[];
   }>();
-  const [cityGeoJson, setCityGeoJson] = useState<{
+  const [cityJson, setCityJson] = useState<{
     type: string;
     features: GeoFeatures[];
   }>();
-  const [view, setView] = useState<EarthView>("Realistic");
+  const view = systemConfig.view;
+  const layer = systemConfig.layer;
   const [country, setCountry] = useState<GeoFeatures>();
   const [city, setCity] = useState<GeoFeatures>();
   const [destinationLoc, setDestinationLoc] = useState<[number, number]>();
 
   const geoObjects = useSWR([user.id], ([userId]) => {
     if (userId) {
-      return client.request(GetGeoObjectsDocument, { userId });
+      return client
+        .request(GetGeoObjectsDocument, { userId })
+        .catch(handleGQLError);
     }
   });
+
+  const visualizeData = useSWR([systemConfig.visualizeDataUrl], ([url]) => {
+    if (url) {
+      return fetch(url).then((res) => res.json());
+    }
+  });
+
+  const combinedVisualization = useMemo(() => {
+    if (visualizeData.data && countryJson) {
+      const countries = visualizeData.data.countries as {
+        number: number;
+        name: string;
+        color: string;
+      }[];
+      if (countries) {
+        const max = Math.max(...countries.map((c) => c.number));
+        const countryMap = countries.reduce((acc, cur: any) => {
+          acc[cur.name] = {
+            ...cur,
+            magnitude: (cur.number / max) * 100,
+          };
+          return acc;
+        }, {} as Record<string, any>);
+
+        const result = countryJson.features.map((feature) => {
+          const country = countryMap[feature.properties.name];
+          if (country) {
+            return {
+              ...feature,
+              data: country,
+            };
+          }
+          return feature as GeoFeatures & {
+            data?: {
+              number: number;
+              name: string;
+              color: string;
+              magnitude: number;
+            };
+          };
+        });
+
+        return result;
+      }
+    }
+    return [];
+  }, [visualizeData.data, countryJson]);
 
   useEffect(() => {
     fetch("/countries.geojson")
       .then((res) => res.json())
       .then((data) => {
-        setGeoJson(data);
+        setCountryJson(data);
       });
 
     fetch("/cities.geojson")
       .then((res) => res.json())
       .then((data) => {
-        setCityGeoJson(data);
+        setCityJson(data);
       });
   }, []);
 
@@ -69,30 +128,27 @@ export const EarthContainer = () => {
       if (files.length > 0) {
         const file = files[0];
         if (file) {
-          try {
-            const url = await uploadFile("images/", file);
-            if (url) {
-              const destination = await getImageGeoLocation(file);
-              if (destination) {
-                const geoObject = await client.request(
-                  CreateGeoObjectDocument,
-                  {
-                    input: {
-                      type: "image",
-                      title: "Image",
-                      imageUrl: url,
-                      lng: destination[0],
-                      lat: destination[1],
-                    },
-                  }
-                );
-                if (geoObject.createGeoObject) {
-                  setDestinationLoc(destination);
-                }
+          const url = await uploadFile("images/", file).catch((e) => {
+            message.error((e as Error).message);
+          });
+          if (url) {
+            const destination = await getImageGeoLocation(file);
+            if (destination) {
+              const geoObject = await client
+                .request(CreateGeoObjectDocument, {
+                  input: {
+                    type: "image",
+                    title: "Image",
+                    imageUrl: url,
+                    lng: destination[0],
+                    lat: destination[1],
+                  },
+                })
+                .catch(handleGQLError);
+              if (geoObject) {
+                setDestinationLoc(destination);
               }
             }
-          } catch (e) {
-            message.error((e as Error).message);
           }
         }
       }
@@ -125,7 +181,7 @@ export const EarthContainer = () => {
         }}
       >
         <Earth
-          countryData={geoJson?.features}
+          countryData={countryJson?.features}
           config={{
             earthTextureEnabled: view === "Realistic" || view === "Combined",
             cloudVisible: view === "Realistic" || view === "Combined",
@@ -134,28 +190,72 @@ export const EarthContainer = () => {
           destinationLoc={destinationLoc}
         />
 
-        {geoJson && (view === "Borders" || view === "Combined") && (
-          <Territories countryData={geoJson.features} />
+        {countryJson && (view === "Borders" || view === "Combined") && (
+          <Territories countryData={countryJson.features} />
         )}
 
-        {cityGeoJson && (view === "Cities" || view === "Combined") && (
-          <Cities features={cityGeoJson.features} onHoverCity={setCity} />
+        {cityJson && (view === "Cities" || view === "Combined") && (
+          <Cities features={cityJson.features} onHoverCity={setCity} />
         )}
 
-        {geoObjects.data?.geoObjects?.map((geoObject) => {
-          return <GeoTag key={geoObject.id} geoObject={geoObject} />;
-        })}
+        {layer === "Image" &&
+          geoObjects.data?.geoObjects?.map((geoObject) => {
+            return <GeoTag key={geoObject.id} geoObject={geoObject} />;
+          })}
+
+        {layer === "Data" &&
+          combinedVisualization?.map((f, i) => {
+            const center = getPolygonCenter(f);
+            const pos = GPSToCartesian(center[0], center[1], EARTH_RADIUS + 1);
+
+            const normal = new Vector3(pos.x, pos.y, pos.z).normalize();
+            const quaternion = new Quaternion().setFromUnitVectors(
+              new Vector3(0, 1, 0),
+              normal
+            );
+
+            if (f.data?.number) {
+              return (
+                <>
+                  <mesh key={i} position={pos} quaternion={quaternion}>
+                    <boxGeometry args={[2, f.data.magnitude, 2]} />
+                    <meshPhongMaterial color={f.data.color} />
+                  </mesh>
+                  <Html position={pos}>
+                    <div style={{ color: "white" }}>{f.data.number}</div>
+                  </Html>
+                </>
+              );
+            }
+          })}
 
         <OrbitControls minDistance={EARTH_RADIUS + 1} enablePan={false} />
-        <Stats />
+        {process.env.NODE_ENV === "development" && <Stats />}
       </Canvas>
 
       <div style={{ position: "absolute", bottom: 10, right: 10 }}>
-        <Segmented
-          options={["Cities", "Borders", "Realistic", "Combined"]}
-          value={view}
-          onChange={(e) => setView(e as EarthView)}
-        />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "end",
+          }}
+        >
+          <Segmented
+            options={["Image", "Data"]}
+            value={layer}
+            onChange={(e) =>
+              setSystemConfig({ ...systemConfig, layer: e as DataLayer })
+            }
+          />
+          <Segmented
+            options={["Cities", "Borders", "Realistic", "Combined"]}
+            value={view}
+            onChange={(e) =>
+              setSystemConfig({ ...systemConfig, view: e as EarthView })
+            }
+          />
+        </div>
       </div>
 
       <div

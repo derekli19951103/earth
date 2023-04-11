@@ -20,10 +20,11 @@ export interface GeoFeatures {
       | "MultiLineString"
       | "Polygon"
       | "MultiPolygon";
-    coordinates: any;
+    coordinates: any[];
   };
   properties: any;
   type: string;
 }
 
 export type EarthView = "Cities" | "Borders" | "Realistic" | "Combined";
+export type DataLayer = "Image" | "Data";
